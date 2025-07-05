@@ -58,7 +58,7 @@ class server_comms:
         global_sv(self.char).print_out(self.num)
         self.con = con
         self.sock = sock
-        print('--------------------SERVER REALTIME LOG-----------------------')
+        print('---------------------SERVER REALTIME LOG------------------------')
 
     def close_socket(self):
         self.sock.close()
@@ -98,9 +98,9 @@ class client_comms:
         try:
             sock.connect((ip, int(port)))
         except:
-            global_sv(self.char).print_out(self.num)
-            print(f'[x] ADDRESS {ip}:{port} NOT REACHABLE: PLEASE SEEK FOR THE SERVER ADDRESS BY RUNNING <ifconfig / ip addr>')
-            global_sv(self.char).print_out(self.num)
+            global_sv(self.char).print_out(56)
+            print(f'[x] ADDRESS {ip}:{port} NOT REACHABLE: PLEASE SEEK\nFOR THE SERVER ADDRESS BY RUNNING <ifconfig / ip addr>')
+            global_sv(self.char).print_out(56)
             os._exit(0)
         global_sv(self.char).print_out(self.num)
         print('[*] CONNECTED TO SERVER')
@@ -196,7 +196,7 @@ class server_utility:
 
  
     def folder_content(self):
-        data = subprocess.getoutput('ls')
+        data = subprocess.getoutput('ls -la')
         server_com.send_data(data, code=True)
         self.flag = True
         return self.flag
@@ -272,6 +272,20 @@ class client_utility:
                 open_file.write(chunk)
                 received += len(chunk)
 
+                total = len(str(size))+1
+                current_s_f = round(received/(1024 * 1024), 2)
+                total_s_f = round(size/(1024 * 1024), 2)
+
+                percentage_f = int((100 * received) / size)
+
+                length_c = len(str(current_s_f))
+                length_p = len(str(percentage_f))
+
+                space_c_v = total - length_c
+                space_p_v = 4 - length_p
+                print(f'[!] RECEIVING: {current_s_f}{' '*space_c_v}of {total_s_f} | {percentage_f}{' '*space_p_v}of 100% ', end='\r', flush=True)
+
+        print('')
         global_sv(self.char).print_out(self.num)
         print('[*] FILE RECEIVED')
         global_sv(self.char).print_out(self.num)
@@ -292,6 +306,20 @@ class client_utility:
                 client_com.send_data(chunk, code=False)
                 received += len(chunk)
 
+                total = len(str(size))+1
+                current_s_f = round(received/(1024 * 1024), 2)
+                total_s_f = round(size/(1024 * 1024), 2)
+
+                percentage_f = int((100 * received) / size)
+
+                length_c = len(str(current_s_f))
+                length_p = len(str(percentage_f))
+
+                space_c_v = total - length_c
+                space_p_v = 4 - length_p
+                print(f'[!] SENDING: {current_s_f}{' '*space_c_v}of {total_s_f} | {percentage_f}{' '*space_p_v}of 100%', end='\r', flush=True)
+
+        print('')
         global_sv(self.char).print_out(self.num)
         print('[*] FILE SENT')
         global_sv(self.char).print_out(self.num)
@@ -315,10 +343,11 @@ class client_utility:
 
     def folder_list(self):
         fd = client_com.receive_data(code=True)
-        global_sv(self.char).print_out(self.num)
-        print('[*] FOLDER LIST')
+        length = len(fd.splitlines()[3])
+        global_sv(self.char).print_out(length)
+        print('[*] FOLDER LIST:')
         print(fd)
-        global_sv(self.char).print_out(self.num)
+        global_sv(self.char).print_out(length)
 
 
 
@@ -360,18 +389,18 @@ class server_relay:
 
         if method == 'rf':
             if server.receive_file(method1, method2):
-                print(f'[*] FILE {method1} RECEIVED @ {self.time_log()}')
+                print(f'[*] FILE :{method1}: RECEIVED @ {self.time_log()}')
             else:
-                print(f'[x] RECEIVING FILE {method1} FAILED @ {self.time_log()}')
+                print(f'[x] RECEIVING FILE :{method1}: FAILED @ {self.time_log()}')
         elif method == 'sf':
             if self.check_file(method1):
                 size = self.file_size(method1)
                 server_com.send_data('0x54', code=True)
                 server_com.send_data(str(size), code=True)
                 if server.send_file(method1, size):
-                    print(f'[*] FILE {method1} SENT @ {self.time_log()}')
+                    print(f'[*] FILE :{method1}: SENT @ {self.time_log()}')
                 else:
-                    print(f'[x] SENDING FILE {method1} FAILED @ {self.time_log()}')
+                    print(f'[x] SENDING FILE :{method1}: FAILED @ {self.time_log()}')
             else:
                 server_com.send_data('0x50', code=True)
 
@@ -394,7 +423,9 @@ class server_relay:
             else:
                 print(f'[*] EXECUTED :{data}: @ {self.time_log()}')
         elif method == 'ex':
-            print(f'[*] CLIENT TERMINATED SESSION @ {self.time_log()}') 
+            global_sv('-').print_out(64)
+            print(f'[*] CLIENT TERMINATED SESSION @ {self.time_log()}')
+            global_sv('-').print_out(64)
             server_com.close_socket()
 
 
@@ -446,25 +477,31 @@ class client_relay:
         option = input('[?]-OPTION [1-6]: ')
         global_sv(self.char).print_out(self.num)
         if option == '2':
-            file_name = input('[?]FILE NAME: ')
+            file_name = input('[S]FILE NAME: ')
             if self.check_file(file_name):
+                split_f = file_name.split('/')
+                file_name_s = split_f[-1] if split_f else file_name
+
                 size = self.file_size(file_name)
-                config = ('rf', file_name, size)
+                config = ('rf', file_name_s, size)
                 construct = ' '.join(map(str, config))
                 client_com.send_data(construct, code=True)
                 client.send_file(file_name, size)
             else:
-                print('[x]NO SUCH FILE')
+                print('[x] NO SUCH FILE')
 
         elif option == '1':
-            file_name = input('[?]FILE NAME: ')
+            file_name = input('[R]FILE NAME: ')
+            split_f = file_name.split('/')
+            file_name_c = split_f[-1] if split_f else file_name
+
             config = ('sf', file_name, True)
             construct = ' '.join(map(str, config))
             client_com.send_data(construct, code=True)
             check = client_com.receive_data(code=True)
             if check == '0x54':
                 size = client_com.receive_data(code=True)
-                client.receive_file(file_name, size)
+                client.receive_file(file_name_c, size)
             elif check == '0x50':
                 print('[x] NO SUCH FILE')
             else:
@@ -483,7 +520,7 @@ class client_relay:
             client.folder_list()
 
         elif option == '5':
-            cli = input('CLI: ').replace(' ', '^*^*^')
+            cli = input('[C]CLI: ').replace(' ', '^*^*^')
             config = ('c', cli, True)
             construct = ' '.join(map(str, config))
             client_com.send_data(construct, code=True)
