@@ -38,7 +38,7 @@ class server_comms:
         except:
             global_sv(self.char).print_out(self.num)
             print(f'[x] PORT {port} ADDRESS ALREADY IN USE OR INVALID PORT')
-            print('[*] CLOSING SERVER: PLEASE TRY DIFFERENT PORT OR KILL OUT THE PROCESS USING THE PORT')
+            print('[*] CLOSING SERVER: PLEASE TRY DIFFERENT PORT OR \nKILL THE PROCESS USING THE PORT <kill -9 process_pid>')
             global_sv(self.char).print_out(self.num) 
             os._exit(0)
 
@@ -73,7 +73,7 @@ class server_comms:
             length = int.from_bytes(con.recv(4), byteorder='big')
             data = con.recv(length).decode()
         else:
-            data = con.recv(1024)
+            data = con.recv(4096)
         return data
 
     def send_data(self, data, code):
@@ -98,9 +98,9 @@ class client_comms:
         try:
             sock.connect((ip, int(port)))
         except:
-            global_sv(self.char).print_out(56)
+            global_sv(self.char).print_out(64)
             print(f'[x] ADDRESS {ip}:{port} NOT REACHABLE: PLEASE SEEK\nFOR THE SERVER ADDRESS BY RUNNING <ifconfig / ip addr>')
-            global_sv(self.char).print_out(56)
+            global_sv(self.char).print_out(64)
             os._exit(0)
         global_sv(self.char).print_out(self.num)
         print('[*] CONNECTED TO SERVER')
@@ -120,7 +120,7 @@ class client_comms:
             length = int.from_bytes(sock.recv(4), byteorder='big')
             data = sock.recv(length).decode()
         else:
-            data = sock.recv(1024)
+            data = sock.recv(4096)
         return data
 
     def send_data(self, data, code):
@@ -163,7 +163,7 @@ class server_utility:
  #  -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -       
 
     def send_file(self, file, size):
-        buffer = 1024
+        buffer = 4096
         size = int(size)
         received = 0
         with open(file, "rb") as open_file:
@@ -295,12 +295,12 @@ class client_utility:
 
 
     def send_file(self, file, size):
-        buffer = 1024
+        buffer = 4096
         size = int(size)
         received = 0
         with open(file, 'rb') as open_file:
             while received < size:
-                chunk = open_file.read(1024)
+                chunk = open_file.read(buffer)
                 if not chunk:
                     break
                 client_com.send_data(chunk, code=False)
