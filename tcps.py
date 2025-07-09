@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------
 
-
+# import libraries 
 import os
 from os import system
 import datetime
@@ -11,6 +11,7 @@ import time
 
 #------------------------------------------------------------------------
 
+# print out a character in prefered length
 class global_sv:
 
     def __init__(self, charac):
@@ -23,9 +24,10 @@ class global_sv:
 #------------------------------------------------------------------------
 
 
-
+# server communication
 class server_comms:
 
+    # initialize constants and starting socket
     def __init__(self, port):
         self.flag = False
         self.dict = {}
@@ -59,36 +61,48 @@ class server_comms:
         self.con = con
         self.sock = sock
         print('---------------------SERVER REALTIME LOG------------------------')
-
+    
+    # close server communication and program
     def close_socket(self):
+        print('[*] SERVER CLOSED')
         self.sock.close()
         self.con.close()
         os._exit(0)
 
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
+    # receive incoming data from the server
     def receive_data(self, code):
         con = self.con
         if code:
+            # mode to receive static data
             length = int.from_bytes(con.recv(4), byteorder='big')
             data = con.recv(length).decode()
         else:
+            # mode to receive streaming data
             data = con.recv(4096)
         return data
 
+
+    # send data to the client
     def send_data(self, data, code):
         con = self.con
         if code:
+            # mode to send static data
             con.send(len(data).to_bytes(4, byteorder='big'))
             con.send(data.encode())
         else:
+            # moden to send streaming data
             con.send(data)
 
 
 #-------------------------------------------------------------------------
 
-class client_comms:
 
+# client communication
+class client_comms:
+    
+    # initialize constants and start client socket
     def __init__(self, ip, port):
         self.flag = False
         self.dict = {}
@@ -107,42 +121,54 @@ class client_comms:
         global_sv(self.char).print_out(self.num)
         self.sock = sock
 
+    # close client communication and program
     def close_socket(self):
+        print('[*] SESSION TERMINATED')
         self.sock.close()
         os._exit(0)
 
 
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
+    # receive incoming data from the server
     def receive_data(self, code):
         sock = self.sock
         if code:
+            # mode to receive static data
             length = int.from_bytes(sock.recv(4), byteorder='big')
             data = sock.recv(length).decode()
         else:
+            # mode to receive streaming data
             data = sock.recv(4096)
         return data
 
+
+    # send data to the server
     def send_data(self, data, code):
         sock = self.sock
         if code:
+            # mode to send static data
             sock.send(len(data).to_bytes(4, byteorder='big'))
             sock.send(data.encode())
         else:
+            # mode to send static data
             sock.send(data)
 
 
 #-------------------------------------------------------------------------
 
 
+# server utility program
 class server_utility:
 
+    # initialize constants
     def __init__(self):
         self.flag = True
         self.dict = {}
 
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
+    # receive file from the client
     def receive_file(self, file, size):
         size = int(size)
         received = 0
@@ -162,6 +188,7 @@ class server_utility:
 
  #  -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -       
 
+    # send file to the client
     def send_file(self, file, size):
         buffer = 4096
         size = int(size)
@@ -184,6 +211,7 @@ class server_utility:
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
 
+    # get working directory
     def current_directory(self):
         data = subprocess.getoutput('pwd')
         server_com.send_data(data, code=True)
@@ -194,7 +222,8 @@ class server_utility:
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
 
- 
+
+    # get folder content
     def folder_content(self):
         data = subprocess.getoutput('ls -la')
         server_com.send_data(data, code=True)
@@ -206,24 +235,28 @@ class server_utility:
 
 
 
+    # execute command line
     def cli_exec(self, cli):
         cli = cli.replace('^*^*^', ' ')
 
         #process command line input
         if cli.startswith('cd') and cli != 'cd':
             try:
+                # change directory to string after cd
                 os.chdir(cli.split(' ')[1])
                 self.flag = True
             except:
                 return '0x51'
         elif cli == 'cd':
             try:
+                # change directory to home directory
                 os.chdir(os.path.expanduser('~'))
                 self.flag = True
             except:
                 return '0x51'
         else:
             try:
+                # process command line
                 data = subprocess.run(
                     cli,
                     shell=True,
@@ -235,6 +268,7 @@ class server_utility:
                 )
                 self.flag = True
             except subprocess.TimeoutExpired:
+                # quit if process stuck
                 return '0x51'
 
         if self.flag:
@@ -252,8 +286,10 @@ class server_utility:
 
 
 
+# client utility program
 class client_utility:
 
+    # initialize constants
     def __init__(self):
         self.flag = False
         self.dict = {}
@@ -261,6 +297,7 @@ class client_utility:
         self.char = '='
 
 
+    # receive file from the server
     def receive_file(self, file, size):
         size = int(size)
         received = 0
@@ -272,6 +309,8 @@ class client_utility:
                 open_file.write(chunk)
                 received += len(chunk)
 
+
+                # progress bar calculation
                 total = len(str(size))+1
                 current_s_f = round(received/(1024 * 1024), 2)
                 total_s_f = round(size/(1024 * 1024), 2)
@@ -293,7 +332,7 @@ class client_utility:
 
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
-
+    # send file to the server
     def send_file(self, file, size):
         buffer = 4096
         size = int(size)
@@ -306,6 +345,8 @@ class client_utility:
                 client_com.send_data(chunk, code=False)
                 received += len(chunk)
 
+                
+                # progress bar calculation
                 total = len(str(size))+1
                 current_s_f = round(received/(1024 * 1024), 2)
                 total_s_f = round(size/(1024 * 1024), 2)
@@ -330,6 +371,7 @@ class client_utility:
 
 
 
+    # receive working directory from the server
     def get_directory(self):
         wd = client_com.receive_data(code=True)
         length = len(wd)+self.num
@@ -341,6 +383,7 @@ class client_utility:
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
 
+    # receive folder content from the server
     def folder_list(self):
         fd = client_com.receive_data(code=True)
         length = len(fd.splitlines()[3])
@@ -354,26 +397,30 @@ class client_utility:
 #-------------------------------------------------------------------------
 
 
-
+# server relay for utility program
 class server_relay:
 
+    # initialize constants
     def __init__(self):
         self.flag = False
         self.dict = {}
 
 
+    # check if file exist
     def check_file(self, file):
         if exists(file) and file:
             return True
         else:
             return False
 
+    # get file size in bytes
     def file_size(self, file):
         with open(file, 'rb') as open_file:
             open_file.seek(0, 2)
             size = open_file.tell()
         return size
 
+    # get current time in year month day hour minute second
     def time_log(self):
         current_time = datetime.datetime.now()
         current_time = current_time.strftime('%y:%m:%d %H:%M:%S')
@@ -383,6 +430,7 @@ class server_relay:
 
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
+    # main relay 
     def relay(self, method, method1, method2):
  
         server = server_utility()
@@ -434,6 +482,7 @@ class server_relay:
 #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
 
 
+    # process client query and relay
     def process_client(self):
         data = server_com.receive_data(code=True).split(' ')
         method = data[0]
@@ -446,8 +495,10 @@ class server_relay:
 
 
 
+# client relay for utility program
 class client_relay:
 
+    # initialize constants
     def __init__(self):
         self.flag = False
         self.dict = {}
@@ -455,12 +506,14 @@ class client_relay:
         self.char = '-'
 
 
+    # check if file exist
     def check_file(self, file):
         if exists(file) and file:
             return True
         else:
             return False
 
+    # get file size in bytes
     def file_size(self, file):
         with open(file, 'rb') as file:
             file.seek(0, 2)
@@ -470,6 +523,7 @@ class client_relay:
 
 
 
+    # constructing query for server and relay data
     def relay(self):
 
         client = client_utility()
@@ -539,8 +593,10 @@ class client_relay:
 
 
 #-------------------------------------------------------------------------
+# starting program for server or client mode based on user choice
 try:
     serv_clie = input('[?]SERVER[1] CLIENT[2]: ')
+    # start server mode
     if serv_clie == '1':
         port = input('[?]PORT: ')
         server_com = server_comms(port)
@@ -554,11 +610,13 @@ try:
             except:
                 server_com.close_socket()
 
+    # start client mode
     elif serv_clie == '2':
         ip = input('[?]IP: ')
         port = input('[?]PORT: ')
         client_com = client_comms(ip, port)
         client_r = client_relay()
+        # options for client
         list_command = '''
 ------OPTION----------?
 [1].RECEIVE FILE      |

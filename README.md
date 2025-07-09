@@ -1,5 +1,5 @@
-# SpyFTP
-Simple Python Socket FTP System 
+# SpyTCPS
+Simple Python Socket TCP System 
 
 A minimalist file transfer and remote command execution system using Python sockets. This project allows a client to connect to a server to exchange files, browse directory contents, execute shell commands remotely, — all over a custom TCP-based protocol.
 
